@@ -1,0 +1,8 @@
+# Python packages for the Pi-side scripts (src/ and tools/).
+# On Raspberry Pi OS you can also use apt:
+#   sudo apt install -y python3-flask python3-serial python3-paho-mqtt python3-gpiozero python3-lgpio
+flask
+pyserial
+paho-mqtt
+gpiozero
+lgpio
