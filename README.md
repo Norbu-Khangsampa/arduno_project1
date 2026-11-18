@@ -39,7 +39,8 @@ arduno_project1/
 
 - Arduino Uno R3 (or compatible), connected to the Pi by USB
 - Small DC motor with its own power supply
-- Logic-level N-channel MOSFET (e.g. IRLZ44N) and a flyback diode
+- S8050 NPN transistor with a 330 Ω base resistor
+- 1N4007 flyback diode and a 10 µF decoupling capacitor
 - 10 kΩ potentiometer and a momentary push button
 - Raspberry Pi 5
 
@@ -47,7 +48,7 @@ arduno_project1/
 |-------------|-------------|
 | D2 | Push button to GND (internal pull-up) |
 | A0 | Potentiometer wiper |
-| D9 (PWM) | MOSFET gate (220 Ω series, 10 kΩ pull-down) |
+| D9 (PWM) | S8050 base through 330 Ω |
 | USB | Raspberry Pi 5 |
 
 | Pi 5 GPIO | Header pin | Connects to (iot_node / gpio_button_test) |

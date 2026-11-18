@@ -6,8 +6,10 @@
 |------|-------|
 | Arduino Uno R3 (or Elegoo Uno R3) | Connected to the Pi by USB (`/dev/ttyACM0`) |
 | Small DC motor | Powered from its own supply, not the Arduino 5 V pin |
-| Logic-level N-channel MOSFET (e.g. IRLZ44N) or NPN transistor (TIP120) | Switches the motor from PWM pin D9 |
-| Flyback diode (1N4007 / 1N5819) | Across the motor terminals |
+| S8050 NPN transistor | Low-side switch for the motor, driven from PWM pin D9 |
+| 330 Ω resistor | Base resistor between D9 and the S8050 base |
+| 1N4007 flyback diode | Across the motor terminals |
+| 10 µF capacitor | Decoupling |
 | 10 kΩ potentiometer | Speed knob |
 | Momentary push button | On/off and fault reset |
 | Raspberry Pi 5 | Runs the web dashboards and the MQTT broker |
@@ -18,8 +20,8 @@
 |-------------|-------------|
 | D2 | Push button → GND (uses the internal pull-up, so no resistor needed) |
 | A0 | Potentiometer wiper (middle leg); outer legs to 5 V and GND |
-| D9 (PWM) | MOSFET gate through a 220 Ω resistor; 10 kΩ from gate to GND |
-| GND | MOSFET source, motor supply GND, pot GND, button GND |
+| D9 (PWM) | S8050 base through a 330 Ω resistor |
+| GND | S8050 emitter, motor supply GND, pot GND, button GND |
 | USB | Raspberry Pi USB port (power + serial at 9600 baud) |
 
 ```
@@ -29,16 +31,17 @@
                             │         (stripe to +)
                             ├──────────────┘
                             │
-                     MOSFET drain
- D9 ──220Ω── gate          │
-         │            MOSFET source
-        10k                 │
-         │                  │
- GND ────┴──────────────────┴──── Motor supply (−) ── Arduino GND
+                      S8050 collector
+ D9 ──330Ω── base           │
+                      S8050 emitter
+                            │
+ GND ───────────────────────┴──── Motor supply (−) ── Arduino GND
 ```
 
 **Common ground is essential:** the motor supply's negative terminal must be
-tied to the Arduino GND, or the MOSFET will not switch reliably.
+tied to the Arduino GND, or the transistor will not switch reliably.
+
+Keep the motor's stall current inside the S8050's collector-current rating.
 
 ## Raspberry Pi 5 GPIO (iot_node.py / gpio_button_test.py)
 
