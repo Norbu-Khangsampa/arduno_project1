@@ -1,9 +1,55 @@
 # Arduino Motor Control
 
-DC-motor speed control with an Arduino Uno and a Raspberry Pi 5. The motor can
-be controlled locally with a physical button and potentiometer, or remotely
-from a web dashboard served by the Pi. A communication watchdog stops the
-motor if the remote connection is lost.
+**A DC motor you can start, stop and speed-control from a physical button and
+knob or from a phone or laptop, with an Arduino Uno running the motor, a
+Raspberry Pi 5 as the gateway, and a firmware fail-safe that stops the motor
+if the link to the Pi is lost.**
+
+| | |
+|---|---|
+| **Measured result** | Stop-time test (20 trials): in progress, no results published yet |
+| **Demo** | 90-second demo video: coming soon |
+| **Main setup** | `firmware/motor_fsm` + `src/serial_bridge.py` + `src/mqtt_dashboard.py` |
+
+### System diagram
+
+```
+ Browser dashboard         Raspberry Pi 5 (gateway, Python)    Arduino Uno R3 (edge, C)
+┌──────────────────┐      ┌──────────────────────────────┐            ┌──────────────────────┐
+│ on/off + slider  │ HTTP │ mqtt_dashboard.py (Flask)    │            │ 4-state machine:     │
+│ polls /telemetry │◄────►│   │ motor/cmd    ▲ telemetry │            │ Off / Knob /         │
+│ every 200 ms;    │      │   ▼              │           │            │ Web Override / Fault │
+│ each poll → <H>  │      │ Mosquitto MQTT broker        │            │                      │
+└──────────────────┘      │   │ motor/cmd    ▲ telemetry │            │ 2 s heartbeat        │
+                          │   ▼              │           │ USB serial │ watchdog → lockout   │
+                          │ serial_bridge.py             │◄──────────►│ fault → button reset │
+                          └──────────────────────────────┘ 9600 baud  └──────────────────────┘
+                                                                                  │ D9 PWM
+                                                                                  ▼
+                                                                 S8050 NPN (330 Ω base) → DC motor
+                                                                 1N4007 flyback · button D2 · knob A0
+
+ Down: <1,speed> · <0> · <H>       Up: <state,speed,pot> every 200 ms
+```
+
+The safety logic lives at the edge: if the heartbeat stops for 2,000 ms
+(closed tab, stopped dashboard or bridge), the firmware stops the motor and
+locks out until the physical button is pressed. Full wiring is in
+[`docs/wiring.md`](docs/wiring.md).
+
+### Status / Planned
+
+**Built**
+- 4-state firmware with the 2 s communication watchdog and fault lockout (`firmware/motor_fsm`)
+- MQTT gateway: serial bridge and Flask dashboard, including a "simulate Wi-Fi drop" button that pauses the heartbeat to test the watchdog
+- Earlier direct-serial version with a Web Worker heartbeat (`firmware/motor_serial` + `src/pi_motor_server.py`)
+
+**In progress (not public yet)**
+- Stop-time test, 20 trials
+- 90-second demo video and breadboard photo
+
+**Planned (not built)**
+- Closed-loop speed control with an encoder motor and a PI loop
 
 ## Two setups
 
@@ -39,7 +85,8 @@ arduno_project1/
 
 - Arduino Uno R3 (or compatible), connected to the Pi by USB
 - Small DC motor with its own power supply
-- Logic-level N-channel MOSFET (e.g. IRLZ44N) and a flyback diode
+- S8050 NPN transistor with a 330 Ω base resistor
+- 1N4007 flyback diode and a 10 µF decoupling capacitor
 - 10 kΩ potentiometer and a momentary push button
 - Raspberry Pi 5
 
@@ -47,7 +94,7 @@ arduno_project1/
 |-------------|-------------|
 | D2 | Push button to GND (internal pull-up) |
 | A0 | Potentiometer wiper |
-| D9 (PWM) | MOSFET gate (220 Ω series, 10 kΩ pull-down) |
+| D9 (PWM) | S8050 base through 330 Ω |
 | USB | Raspberry Pi 5 |
 
 | Pi 5 GPIO | Header pin | Connects to (iot_node / gpio_button_test) |
